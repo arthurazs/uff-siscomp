@@ -7,11 +7,13 @@ from mapping import DIRECT, ASSOCIATIVE, SET_ASSOCIATIVE
 with open(argv[1]) as addresses:
     cache = Cache(
         mapping=DIRECT, cache_size=6
+
         # Associative needs a Policy
         # mapping=ASSOCIATIVE, cache_size=6, policy=RANDOM
         # mapping=ASSOCIATIVE, cache_size=6, policy=FIFO
         # mapping=ASSOCIATIVE, cache_size=6, policy=LRU
         # mapping=ASSOCIATIVE, cache_size=6, policy=LFU
+
         # Set Associative needs a Policy and the Frame Size
         # mapping=SET_ASSOCIATIVE, cache_size=6, policy=RANDOM, frame_size=2
         # mapping=SET_ASSOCIATIVE, cache_size=6, policy=FIFO, frame_size=2

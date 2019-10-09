@@ -38,13 +38,14 @@ class Direct:
         tag_output = f'\nTag:\t\t{tag}'
         output = ''
         result = 'MISS'
-        if tag == self._cache[position]:
+        cache_pos = self._cache[position]
+        if tag == cache_pos:
             self._hit += 1
             result = 'HIT'
         else:
             output += f'Old cache:\t{self._cache}\n'
             self._miss += 1
-            self._cache[position] = tag
+            cache_pos = tag
 
         tag_output += f' ({result}) -> position {position}'
         output += f'New cache:\t{self._cache}\n'
@@ -59,17 +60,16 @@ class Associative:
         self._hit = 0
         self._miss = 0
         self._counter = 0
-        self._policy = policy
-        if self._policy == RANDOM:
+        if policy == RANDOM:
             print('Policy => Random')
             self.alloc = self._random_alloc
-        elif self._policy == FIFO:
+        elif policy == FIFO:
             print('Policy => FIFO')
             self.alloc = self._fifo_alloc
-        elif self._policy == LRU:
+        elif policy == LRU:
             print('Policy => LRU')
             self.alloc = self._lru_alloc
-        elif self._policy == LFU:
+        elif policy == LFU:
             print('Policy => LFU')
             self._cache = {}
             self.alloc = self._lfu_alloc
@@ -200,149 +200,150 @@ class SetAssociative:
     def __init__(self, cache_size, frame_size=2, policy=RANDOM):
         self._cache_size = cache_size
         self._frame_size = frame_size
-        # self._cache = [None] * self._cache_size
-        self._cache = []
-        for row in range(self._cache_size // self._frame_size):
-            self._cache.append([])
-            for column in range(self._frame_size):
-                self._cache[row].append(None)
+        self._lines = cache_size // frame_size
+        self._cache = [[None] * frame_size for i in range(self._lines)]
         self._hit = 0
         self._miss = 0
         self._counter = {}
-        for index in range(self._cache_size // self._frame_size):
+        for index in range(self._lines):
             self._counter[index] = 0
-        self._policy = policy
-        if self._policy == RANDOM:
+        if policy == RANDOM:
             print('Policy => Random')
             self.alloc = self._random_alloc
-        elif self._policy == FIFO:
+        elif policy == FIFO:
             print('Policy => FIFO')
             self.alloc = self._fifo_alloc
-        elif self._policy == LRU:
+        elif policy == LRU:
             print('Policy => LRU')
             self.alloc = self._lru_alloc
-        elif self._policy == LFU:
-            self._cache = []
-            for row in range(self._cache_size // self._frame_size):
-                self._cache.append({})
+        elif policy == LFU:
+            self._cache = [{} for _ in range(self._lines)]
             print('Policy => LFU')
             self.alloc = self._lfu_alloc
 
     def _random_alloc(self, tag):
-        position = tag % (self._cache_size // self._frame_size)
+        position = tag % (self._lines)
         tag_output = f'\nTag:\t\t{tag}'
         result = 'MISS'
         output = f'Old cache:\t{self._cache}\n'
-        if tag in self._cache[position]:
+        cache_pos = self._cache[position]
+        counter_pos = self._counter[position]
+        if tag in cache_pos:
             result = 'HIT'
             tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {self._cache[position].index(tag)}'
+            tag_output += f', position {cache_pos.index(tag)}'
             self._hit += 1
-        elif self._counter[position] < self._frame_size:  # NOT FULL
+        elif counter_pos < self._frame_size:  # NOT FULL
             tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {self._counter[position]}'
-            self._cache[position][self._counter[position]] = tag
-            self._counter[position] += 1
+            tag_output += f', position {counter_pos}'
+            cache_pos[counter_pos] = tag
+            counter_pos += 1
             self._miss += 1
         else:
             tag_output += f' ({result}) -> direct position {position}'
             self._miss += 1
             random_position = randint(0, self._frame_size - 1)
             tag_output += f', random position {random_position}'
-            self._cache[position][random_position] = tag
+            cache_pos[random_position] = tag
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
         print(f'{tag_output}\n{output}')
 
     def _fifo_alloc(self, tag):
-        position = tag % (self._cache_size // self._frame_size)
+        position = tag % (self._lines)
         tag_output = f'\nTag:\t\t{tag}'
         result = 'MISS'
         output = f'Old cache:\t{self._cache}\n'
-        if tag in self._cache[position]:
+        cache_pos = self._cache[position]
+        counter_pos = self._counter[position]
+        if tag in cache_pos:
             result = 'HIT'
             self._hit += 1
             tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {self._cache[position].index(tag)}'
-        elif self._counter[position] < self._frame_size:  # NOT FULL
+            tag_output += f', position {cache_pos.index(tag)}'
+        elif counter_pos < self._frame_size:  # NOT FULL
             tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {self._counter[position]}'
-            self._cache[position][self._counter[position]] = tag
-            self._counter[position] += 1
+            tag_output += f', position {counter_pos}'
+            cache_pos[counter_pos] = tag
+            counter_pos += 1
             self._miss += 1
         else:
             tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', fifo position {self._counter[position] - 1}'
+            tag_output += f', fifo position {counter_pos - 1}'
             self._miss += 1
-            self._cache[position].pop(0)
-            self._cache[position].append(tag)
+            cache_pos.pop(0)
+            cache_pos.append(tag)
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
         print(f'{tag_output}\n{output}')
 
     def _lru_alloc(self, tag):
-        position = tag % (self._cache_size // self._frame_size)
+        position = tag % (self._lines)
         tag_output = f'\nTag:\t\t{tag}'
         result = 'MISS'
         output = f'Old cache:\t{self._cache}\n'
-        if tag in self._cache[position]:
+        cache_pos = self._cache[position]
+        if tag in cache_pos:
             result = 'HIT'
             tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {self._cache[position].index(tag)}'
+            tag_output += f', position {cache_pos.index(tag)}'
             self._hit += 1
-            self._cache[position].remove(tag)
-            self._cache[position].append(tag)
+            cache_pos.remove(tag)
+            cache_pos.append(tag)
         else:
             tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', lru position {len(self._cache[position]) - 1}'
-            self._cache[position].pop(0)
-            self._cache[position].append(tag)
+            tag_output += f', lru position {len(cache_pos) - 1}'
+            cache_pos.pop(0)
+            cache_pos.append(tag)
             self._miss += 1
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
         print(f'{tag_output}\n{output}')
 
     def _lfu_alloc(self, tag):
-        def find_tag_in_set(tag, position):
-            for frequency, tags in self._cache[position].items():
+        def find_tag_in_set(tag, position, cache):
+            for frequency, tags in cache.items():
                 if tag in tags:
                     return frequency
             return None
-        position = tag % (self._cache_size // self._frame_size)
+        position = tag % (self._lines)
         tag_output = f'\nTag:\t\t{tag}'
         result = 'MISS'
         output = f'Old cache:\t{self._cache}\n'
-        frequency = find_tag_in_set(tag, position)
+        cache_pos = self._cache[position]
+        counter_pos = self._counter[position]
+        frequency = find_tag_in_set(tag, position, cache_pos)
         if frequency is not None:
             result = 'HIT'
             tag_output += f' ({result}) -> direct position {position}'
             tag_output += ', position {' + str(frequency) + ': ['
-            tag_output += str(self._cache[position][frequency].index(tag))
+            cache_pos_freq = cache_pos[frequency]
+            tag_output += str(cache_pos_freq.index(tag))
             tag_output += ']}'
             self._hit += 1
-            self._cache[position][frequency].remove(tag)
-            if len(self._cache[position][frequency]) == 0:
-                del self._cache[position][frequency]
+            cache_pos_freq.remove(tag)
+            if len(cache_pos_freq) == 0:
+                del cache_pos_freq
             try:
-                self._cache[position][frequency + 1].append(tag)
+                cache_pos[frequency + 1].append(tag)
             except KeyError:
-                self._cache[position][frequency + 1] = [tag]
-        elif self._counter[position] < self._frame_size:  # NOT FULL
+                cache_pos[frequency + 1] = [tag]
+        elif counter_pos < self._frame_size:  # NOT FULL
             tag_output += f' ({result}) -> direct position {position}'
-            cache_pos = self._cache[position]
+            cache_pos = cache_pos
             if cache_pos:
                 new_pos = str(len(cache_pos[min(cache_pos)]))
                 tag_output += ', position {0: [' + new_pos + ']}'
             else:
                 tag_output += ', position {0: [0]}'
             try:
-                self._cache[position][0].append(tag)
+                cache_pos[0].append(tag)
             except KeyError:
-                self._cache[position][0] = [tag]
-            self._counter[position] += 1
+                cache_pos[0] = [tag]
+            counter_pos += 1
             self._miss += 1
         else:
-            cache_pos = self._cache[position]
+            cache_pos = cache_pos
             tag_output += f' ({result}) -> direct position {position}'
             least = min(cache_pos)
             tag_output += ', lfu position {' + str(least) + ': [0]}'
