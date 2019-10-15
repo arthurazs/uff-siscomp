@@ -1,25 +1,17 @@
-from sys import argv
 from mapping import Cache
-from mapping import RANDOM, FIFO, LRU, LFU
 from mapping import DIRECT, ASSOCIATIVE, SET_ASSOCIATIVE
+from mapping import RANDOM, FIFO, LRU, LFU
 
 
-with open(argv[1]) as addresses:
-    cache = Cache(
-        mapping=DIRECT, cache_size=6
+FILENAME = 'example.txt'
+CACHE_SIZE = 4
+MAPPING = ASSOCIATIVE
+POLICY = FIFO
+FRAME_SIZE = 2
 
-        # Associative needs a Policy
-        # mapping=ASSOCIATIVE, cache_size=6, policy=RANDOM
-        # mapping=ASSOCIATIVE, cache_size=6, policy=FIFO
-        # mapping=ASSOCIATIVE, cache_size=6, policy=LRU
-        # mapping=ASSOCIATIVE, cache_size=6, policy=LFU
-
-        # Set Associative needs a Policy and the Frame Size
-        # mapping=SET_ASSOCIATIVE, cache_size=6, policy=RANDOM, frame_size=2
-        # mapping=SET_ASSOCIATIVE, cache_size=6, policy=FIFO, frame_size=2
-        # mapping=SET_ASSOCIATIVE, cache_size=6, policy=LRU, frame_size=2
-        # mapping=SET_ASSOCIATIVE, cache_size=6, policy=LFU, frame_size=2
-    )
+with open(FILENAME) as addresses:
+    cache = Cache(mapping=MAPPING, cache_size=CACHE_SIZE,
+                  policy=POLICY, frame_size=FRAME_SIZE)
     for tag in addresses.readlines():
         tag = int(tag.strip())
         cache.alloc(tag)
