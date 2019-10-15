@@ -1,13 +1,13 @@
 from random import randint
 
-RANDOM = 0
-FIFO = 1
-LRU = 2
-LFU = 3
+RANDOM = 1
+FIFO = 2
+LRU = 3
+LFU = 4
 
-DIRECT = 0
-ASSOCIATIVE = 1
-SET_ASSOCIATIVE = 2
+DIRECT = 1
+ASSOCIATIVE = 2
+SET_ASSOCIATIVE = 3
 
 
 class Cache:
