@@ -36,20 +36,21 @@ class Direct:
     def alloc(self, tag):
         position = tag % self._cache_size
         tag_output = f'\nTag:\t\t{tag}'
-        output = ''
+        output = f'Old cache:\t{self._cache}\n'
         result = 'MISS'
-        cache_pos = self._cache[position]
-        if tag == cache_pos:
+
+        if tag == self._cache[position]:
             self._hit += 1
             result = 'HIT'
         else:
-            output += f'Old cache:\t{self._cache}\n'
             self._miss += 1
-            cache_pos = tag
+            self._cache[position] = tag
 
-        tag_output += f' ({result}) -> position {position}'
+        tag_output += f' ({result})'
         output += f'New cache:\t{self._cache}\n'
-        output += f'Hit/Miss:\t{self._hit}/{self._miss}\n'
+        output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
 
@@ -78,48 +79,46 @@ class Associative:
         tag_output = f'\nTag:\t\t{tag}'
         output = ''
         result = 'MISS'
+        output += f'Old cache:\t{self._cache}\n'
         if tag in self._cache:
             self._hit += 1
             result = 'HIT'
-            tag_output += f' ({result}) -> position {self._cache.index(tag)}'
         elif self._counter < self._cache_size:  # NOT FULL
-            output += f'Old cache:\t{self._cache}\n'
             self._cache[self._counter] = tag
-            tag_output += f' ({result}) -> position {self._counter}'
             self._counter += 1
             self._miss += 1
         else:
             self._miss += 1
             position = randint(0, self._cache_size - 1)
-            tag_output += f' ({result}) -> random position {position}'
-            output += f'Old cache:\t{self._cache}\n'
             self._cache[position] = tag
+        tag_output += f' ({result})'
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
     def _fifo_alloc(self, tag):
         tag_output = f'\nTag:\t\t{tag}'
         output = ''
         result = 'MISS'
+        output += f'Old cache:\t{self._cache}\n'
         if tag in self._cache:
             self._hit += 1
             result = 'HIT'
-            tag_output += f' ({result}) -> position {self._cache.index(tag)}'
         elif self._counter < self._cache_size:  # NOT FULL
-            output += f'Old cache:\t{self._cache}\n'
             self._cache[self._counter] = tag
-            tag_output += f' ({result}) -> position {self._counter}'
             self._counter += 1
             self._miss += 1
         else:
-            output += f'Old cache:\t{self._cache}\n'
             self._miss += 1
             self._cache.pop(0)
             self._cache.append(tag)
-            tag_output += f' ({result}) -> fifo position {self._counter - 1}'
+        tag_output += f' ({result})'
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
     def _lru_alloc(self, tag):
@@ -130,16 +129,17 @@ class Associative:
         if tag in self._cache:
             self._hit += 1
             result = 'HIT'
-            tag_output += f' ({result}) -> position {self._cache.index(tag)}'
             self._cache.remove(tag)
             self._cache.append(tag)
         else:
-            tag_output += f' ({result}) -> lru position {len(self._cache) - 1}'
             self._cache.pop(0)
             self._cache.append(tag)
             self._miss += 1
+        tag_output += f' ({result})'
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
     def _lfu_alloc(self, tag):
@@ -152,12 +152,13 @@ class Associative:
         tag_output = f'\nTag:\t\t{tag}'
         output = ''
         result = 'MISS'
-        output += f'Old cache:\t{self._cache}\n'
+        output += 'Old cache:\t{'
+        for key, value in sorted(self._cache.items()):
+            output += f'{key}: {value}, '
+        output = output[:-2] + '}\n'
+
         if frequency is not None:
             result = 'HIT'
-            tag_output += f' ({result}) -> position '
-            tag_output += '{' + str(frequency) + ': ['
-            tag_output += str(self._cache[frequency].index(tag)) + ']}'
             self._hit += 1
             self._cache[frequency].remove(tag)
             if len(self._cache[frequency]) == 0:
@@ -167,12 +168,6 @@ class Associative:
             except KeyError:
                 self._cache[frequency + 1] = [tag]
         elif self._counter < self._cache_size:  # NOT FULL
-            tag_output += f' ({result}) -> position '
-            if self._cache:
-                new_pos = str(len(self._cache[min(self._cache)]))
-                tag_output += '{0: [' + new_pos + ']}'
-            else:
-                tag_output += '{0: [0]}'
             try:
                 self._cache[0].append(tag)
             except KeyError:
@@ -181,8 +176,6 @@ class Associative:
             self._miss += 1
         else:
             least = min(self._cache)
-            tag_output += f' ({result}) -> lfu position '
-            tag_output += '{' + str(least) + ': [0]}'
             self._cache[least].pop(0)
             if len(self._cache[least]) == 0:
                 del self._cache[least]
@@ -191,8 +184,14 @@ class Associative:
             except KeyError:
                 self._cache[0] = [tag]
             self._miss += 1
-        output += f'New cache:\t{self._cache}\n'
+        tag_output += f' ({result})'
+        output += 'New cache:\t{'
+        for key, value in sorted(self._cache.items()):
+            output += f'{key}: {value}, '
+        output = output[:-2] + '}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
 
@@ -227,26 +226,22 @@ class SetAssociative:
         result = 'MISS'
         output = f'Old cache:\t{self._cache}\n'
         cache_pos = self._cache[position]
-        counter_pos = self._counter[position]
         if tag in cache_pos:
             result = 'HIT'
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {cache_pos.index(tag)}'
             self._hit += 1
-        elif counter_pos < self._frame_size:  # NOT FULL
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {counter_pos}'
-            cache_pos[counter_pos] = tag
-            counter_pos += 1
+        elif self._counter[position] < self._frame_size:  # NOT FULL
+            cache_pos[self._counter[position]] = tag
+            self._counter[position] += 1
             self._miss += 1
         else:
-            tag_output += f' ({result}) -> direct position {position}'
             self._miss += 1
             random_position = randint(0, self._frame_size - 1)
-            tag_output += f', random position {random_position}'
             cache_pos[random_position] = tag
+        tag_output += f' ({result})'
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
     def _fifo_alloc(self, tag):
@@ -255,26 +250,22 @@ class SetAssociative:
         result = 'MISS'
         output = f'Old cache:\t{self._cache}\n'
         cache_pos = self._cache[position]
-        counter_pos = self._counter[position]
         if tag in cache_pos:
             result = 'HIT'
             self._hit += 1
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {cache_pos.index(tag)}'
-        elif counter_pos < self._frame_size:  # NOT FULL
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {counter_pos}'
-            cache_pos[counter_pos] = tag
-            counter_pos += 1
+        elif self._counter[position] < self._frame_size:  # NOT FULL
+            cache_pos[self._counter[position]] = tag
+            self._counter[position] += 1
             self._miss += 1
         else:
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', fifo position {counter_pos - 1}'
             self._miss += 1
             cache_pos.pop(0)
             cache_pos.append(tag)
+        tag_output += f' ({result})'
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
     def _lru_alloc(self, tag):
@@ -285,19 +276,18 @@ class SetAssociative:
         cache_pos = self._cache[position]
         if tag in cache_pos:
             result = 'HIT'
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', position {cache_pos.index(tag)}'
             self._hit += 1
             cache_pos.remove(tag)
             cache_pos.append(tag)
         else:
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += f', lru position {len(cache_pos) - 1}'
             cache_pos.pop(0)
             cache_pos.append(tag)
             self._miss += 1
+        tag_output += f' ({result})'
         output += f'New cache:\t{self._cache}\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
 
     def _lfu_alloc(self, tag):
@@ -309,44 +299,39 @@ class SetAssociative:
         position = tag % (self._lines)
         tag_output = f'\nTag:\t\t{tag}'
         result = 'MISS'
-        output = f'Old cache:\t{self._cache}\n'
+
+        output = 'Old cache:\t['
+        for elements in self._cache:
+            output += '{'
+            if elements.items():
+                for key, value in sorted(elements.items()):
+                    output += f'{key}: {value}, '
+                output = output[:-2] + '}, '
+            else:
+                output += '}, '
+        output = output[:-2] + ']\n'
+
         cache_pos = self._cache[position]
-        counter_pos = self._counter[position]
         frequency = find_tag_in_set(tag, position, cache_pos)
         if frequency is not None:
             result = 'HIT'
-            tag_output += f' ({result}) -> direct position {position}'
-            tag_output += ', position {' + str(frequency) + ': ['
-            cache_pos_freq = cache_pos[frequency]
-            tag_output += str(cache_pos_freq.index(tag))
-            tag_output += ']}'
             self._hit += 1
-            cache_pos_freq.remove(tag)
-            if len(cache_pos_freq) == 0:
-                del cache_pos_freq
+            cache_pos[frequency].remove(tag)
+            if len(cache_pos[frequency]) == 0:
+                del cache_pos[frequency]
             try:
                 cache_pos[frequency + 1].append(tag)
             except KeyError:
                 cache_pos[frequency + 1] = [tag]
-        elif counter_pos < self._frame_size:  # NOT FULL
-            tag_output += f' ({result}) -> direct position {position}'
-            cache_pos = cache_pos
-            if cache_pos:
-                new_pos = str(len(cache_pos[min(cache_pos)]))
-                tag_output += ', position {0: [' + new_pos + ']}'
-            else:
-                tag_output += ', position {0: [0]}'
+        elif self._counter[position] < self._frame_size:  # NOT FULL
             try:
                 cache_pos[0].append(tag)
             except KeyError:
                 cache_pos[0] = [tag]
-            counter_pos += 1
+            self._counter[position] += 1
             self._miss += 1
         else:
-            cache_pos = cache_pos
-            tag_output += f' ({result}) -> direct position {position}'
             least = min(cache_pos)
-            tag_output += ', lfu position {' + str(least) + ': [0]}'
             cache_pos[least].pop(0)
             if len(cache_pos[least]) == 0:
                 del cache_pos[least]
@@ -355,6 +340,19 @@ class SetAssociative:
             except KeyError:
                 cache_pos[0] = [tag]
             self._miss += 1
-        output += f'New cache:\t{self._cache}\n'
+        tag_output += f' ({result})'
+
+        output += 'New cache:\t['
+        for elements in self._cache:
+            output += '{'
+            if elements.items():
+                for key, value in sorted(elements.items()):
+                    output += f'{key}: {value}, '
+                output = output[:-2] + '}, '
+            else:
+                output += '}, '
+        output = output[:-2] + ']\n'
         output += f'Hit/Miss:\t{self._hit}/{self._miss}'
+        percentage = self._hit / (self._hit + self._miss) * 100
+        output += f'\nHit rate:\t{percentage:.2f}%'
         print(f'{tag_output}\n{output}')
